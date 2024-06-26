@@ -21,7 +21,7 @@ const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
 //shaders
-const char* vertexShaderSource = "#version 330 core\n" //vert
+const char* vertexShaderSource = "#version 330 core\n" //vert // basic shader
                                  "layout (location = 0) in vec3 aPos;\n"
                                  "layout (location = 1) in vec3 aColor;\n"
                                  "layout (location = 2) in vec2 aTexCoord;\n"
@@ -36,7 +36,7 @@ const char* vertexShaderSource = "#version 330 core\n" //vert
                                  "   TexCoord = aTexCoord;\n"
                                  "}\0";
 
-const char* vertexShaderSource2 = "#version 330 core\n" //vert
+const char* vertexShaderSource2 = "#version 330 core\n" //vert // transform shader
 								  "layout (location = 0) in vec3 aPos;\n"
 								  "layout (location = 1) in vec3 aColor;\n"
 							 	  "layout (location = 2) in vec2 aTexCoord;\n"
@@ -50,7 +50,7 @@ const char* vertexShaderSource2 = "#version 330 core\n" //vert
 								  "   TexCoord = aTexCoord;\n"
 								  "}\0";
 
-const char* vertexShaderSource3 = "#version 330 core\n" // vert
+const char* vertexShaderSource3 = "#version 330 core\n" // vert // projection shader
                                   "layout(location = 0) in vec3 aPos;\n"
                                   "layout (location = 1) in vec3 aColor;\n"
                                   "layout(location = 2) in vec2 aTexCoord;\n"
@@ -65,7 +65,7 @@ const char* vertexShaderSource3 = "#version 330 core\n" // vert
                                   "   vertexColor = aColor; \n"
                                   "   vertexPos = aPos;\n"
                                   "   gl_Position = projection * view * model * vec4(aPos, 1.0);\n"
-                                  "   TexCoord = vec2(aTexCoord.x, aTexCoord.y);\n"
+                                  "   TexCoord = aTexCoord;\n"
                                   "}\n";
 
 const char* fragmentShaderSource1 = "#version 330 core\n" //frag // orange shader
@@ -111,7 +111,7 @@ const char* fragmentShaderSource5 = "#version 330 core\n" //frag // texture UV s
 									 "   FragColor = vec4(vertexPos.x + 1.0, vertexPos.y + 1.0, vertexPos.z, 1.0);\n"
 									 "}\n\0";
 
-const char* fragmentShaderSource6 = "#version 330 core\n" //frag // dual texture shader
+const char* fragmentShaderSource6 = "#version 330 core\n" //frag // blended textures shader
                                     "out vec4 FragColor;\n"
                                     "in vec2 TexCoord;\n"
                                     "uniform sampler2D texture1;\n"
@@ -120,6 +120,15 @@ const char* fragmentShaderSource6 = "#version 330 core\n" //frag // dual texture
                                     "{\n"
                                     "    FragColor = mix(texture(texture1, TexCoord), texture(texture2, TexCoord), 0.2);\n"
                                     "}\n";
+
+const char* fragmentShaderSource7 = "#version 330 core\n" //frag // texture shader
+									"out vec4 FragColor;\n"
+									"in vec2 TexCoord;\n"
+									"uniform sampler2D texture1;\n"
+									"void main()\n"
+									"{\n"
+									"    FragColor = texture(texture1, TexCoord) * vec4(1.0);\n"
+									"}\n";
 
 int main(int argc, char* argv[])
 {
@@ -148,33 +157,80 @@ int main(int argc, char* argv[])
     unsigned int textureTransformShader = setUpShader(vertexShaderSource2, fragmentShaderSource4);
     unsigned int modelShader = setUpShader(vertexShaderSource3, fragmentShaderSource4);
 
+    glEnable(GL_DEPTH_TEST);
+
     // SET UP VERTEX DATA AND VBOs/VAOs/EBO
 
-    float quad1verts[] = {
-        //---position---// //----color----// // texture coordinates
-        0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // 0 // RED
-        0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f, // 1 // YELLOW
-       -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, // 2 // BLUE
-       -0.5f,  0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, // 3 // GREEN
-    };
+    float cube1verts[] = {
+      //---position--------/----color--------/texture coordinates
+      //X------Y------Z----/R-----G-----B----/X-----Y----/
+      // back face
+        0.5f,  0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // 0 // RED // top right
+        0.5f, -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // 1 // YELLOW // bottom right
+       -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, // 2 // GREEN // bottom left
+       -0.5f,  0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, // 3 // BLUE // top left
 
-    float quad2verts[] = {
-        //---position---// //----color----// // texture coordinates
-        1.0f,  1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // 0 // YELLOW
-        1.0f, -1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f, // 1 // RED
-       -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // 2 // BLACK
-       -1.0f,  1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, // 3 // GREEN
+        // front face
+       -0.5f, -0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, // 4
+        0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f, // 5
+        0.5f,  0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // 6
+       -0.5f,  0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, // 7
+
+        // left face
+       -0.5f,  0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, // 8
+       -0.5f,  0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, // 9
+       -0.5f, -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, // 10
+       -0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f, // 11
+
+        // right face // working on color correction
+        0.5f,  0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // 12
+        0.5f,  0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, // 13
+        0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, // 14
+        0.5f, -0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // 15
+
+        // bottom face
+       -0.5f, -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, // 16
+        0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, // 17
+        0.5f, -0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, // 18
+       -0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // 19
+
+        // top face
+       -0.5f,  0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, // 20
+        0.5f,  0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // 21
+        0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f, // 22
+       -0.5f,  0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, // 23
     };
 
     unsigned int indices[] = {
-        0, 1, 3, // 1st triangle
-        1, 2, 3, // 2nd triangle
+        //back face
+         0,  1,  3, // 1st triangle
+         1,  2,  3, // 2nd triangle
+
+        //front face
+         4,  5,  6, // 3rd triangle
+         6,  7,  4, // 4th triangle
+
+        //left face
+         8,  9, 11, // 5th triangle
+         9, 10, 11, // 6th triangle
+
+        //right face
+        12, 13, 15, // 7th triangle
+        13, 14, 15, // 8th triangle
+
+        //bottom face
+        16, 17, 19, // 9th triangle
+        17, 18, 19, // 10th triangle
+
+        //top face
+        20, 21, 23, // 11th triangle
+        21, 22, 23, // 12th triangle
     };
 
-    unsigned int VBOs[2], VAOs[2], EBOs[2];
-    glGenVertexArrays(2, VAOs);
-    glGenBuffers(2, VBOs);
-    glGenBuffers(2, EBOs);
+    unsigned int VBOs[1], VAOs[1], EBOs[1];
+    glGenVertexArrays(1, VAOs);
+    glGenBuffers(1, VBOs);
+    glGenBuffers(1, EBOs);
 
     // SETUP TEXTURES
     unsigned int texture = setUpTexture();
@@ -182,26 +238,11 @@ int main(int argc, char* argv[])
 
     // SETUP RENDERING
     
-    // 1ST QUAD
+    // CUBE
     glBindVertexArray(VAOs[0]);
     glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(quad1verts), quad1verts, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cube1verts), cube1verts, GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[0]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-
-    // 2ND QUAD
-    glBindVertexArray(VAOs[1]);
-    glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(quad2verts), quad2verts, GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[1]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
@@ -221,20 +262,11 @@ int main(int argc, char* argv[])
         processInput(window);
 
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glActiveTexture(GL_TEXTURE0);
-
-        // DRAW BACKGROUND QUAD
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[1]);
-        glBindTexture(GL_TEXTURE_2D, texture);
-
-        glUseProgram(textureUVShader);
-        glBindVertexArray(VAOs[1]);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-        // DRAW TEXTURED QUAD IN PERSPECTIVE
+        // DRAW TEXTURED CUBE IN PERSPECTIVE
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[0]);
+        glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
 
         glUseProgram(modelShader);
@@ -242,19 +274,21 @@ int main(int argc, char* argv[])
         mat4 model = GLM_MAT4_IDENTITY_INIT;
         mat4 view = GLM_MAT4_IDENTITY_INIT;
         mat4 projection = GLM_MAT4_IDENTITY_INIT;
-        glm_rotate(model, glm_rad(-55.0f), (vec3) { 1.0f, 0.0f, 0.0f });
-        glm_translate(view, (vec3){0.0f, 0.0f, -3.0f});
+        glm_rotate(model, glm_rad(0.0f), (vec3) { 1.0f, 0.5f, 0.0f });
+        float viewXTranslate = (float) sin(glfwGetTime());
+        glm_rotate(view, glm_rad(viewXTranslate * 10.0f), (vec3){0.0f, 1.0f, 0.0f});
+        glm_translate(view, (vec3){viewXTranslate, -0.25f, -3.0f});
         glm_perspective(glm_rad(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f, projection);
 
         unsigned int modelLoc = glGetUniformLocation(modelShader, "model");
         unsigned int viewLoc = glGetUniformLocation(modelShader, "view");
         unsigned int projectionLoc = glGetUniformLocation(modelShader, "projection");
-        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, (const GLfloat*)model);
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, (const GLfloat*) model);
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, (const GLfloat*) view);
         glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, (const GLfloat*) projection);
 
         glBindVertexArray(VAOs[0]);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
         // SWAP BUFFERS AND CHECK FOR USER INPUTS
         glfwSwapBuffers(window);
@@ -262,14 +296,16 @@ int main(int argc, char* argv[])
     }
 
     // DE-ALLOCATE RESOURCES
-    glDeleteVertexArrays(2, VAOs);
-    glDeleteBuffers(2, VBOs);
-    glDeleteBuffers(2, EBOs);
+    glDeleteVertexArrays(1, VAOs);
+    glDeleteBuffers(1, VBOs);
+    glDeleteBuffers(1, EBOs);
     glDeleteProgram(yellowShader);
     glDeleteProgram(orangeShader);
     glDeleteProgram(RGBShader);
     glDeleteProgram(textureRGBShader);
     glDeleteProgram(textureUVShader);
+    glDeleteProgram(textureTransformShader);
+    glDeleteProgram(modelShader);
 
     // CLEAR ALL RESOURCES AND STOP OpenGL
     glfwTerminate();
@@ -366,13 +402,14 @@ unsigned int setUpTexture(){
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     int width, height, nrChannels;
-    unsigned char* data = stbi_load("container.jpg", & width, & height, & nrChannels, 0);
+    stbi_set_flip_vertically_on_load(1);
+    unsigned char* data = stbi_load("container.jpg", &width, &height, &nrChannels, 0);
     if (data) {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
