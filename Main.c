@@ -161,6 +161,20 @@ int main(int argc, char* argv[])
 
     // SET UP VERTEX DATA AND VBOs/VAOs/EBO
 
+    float plane1verts[] = {
+        //---position--------/----color--------/texture coordinates
+        //X------Y------Z----/R-----G-----B----/X-----Y----/
+       -0.75f, -1.0f, -0.75f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, // 16
+        0.75f, -1.0f, -0.75f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, // 17
+        0.75f, -1.0f,  0.75f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, // 18
+       -0.75f, -1.0f,  0.75f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // 19
+    };
+
+    float planeIndices[] = {
+		0, 1, 3, // 1st triangle
+		1, 2, 3, // 2nd triangle
+	};
+
     float cube1verts[] = {
       //---position--------/----color--------/texture coordinates
       //X------Y------Z----/R-----G-----B----/X-----Y----/
@@ -227,10 +241,23 @@ int main(int argc, char* argv[])
         21, 22, 23, // 12th triangle
     };
 
-    unsigned int VBOs[1], VAOs[1], EBOs[1];
-    glGenVertexArrays(1, VAOs);
-    glGenBuffers(1, VBOs);
-    glGenBuffers(1, EBOs);
+    vec3 cubePositions[] = {
+        { 0.0f,  0.0f,  0.0f },
+        { 2.0f,  5.0f, -15.0f },
+        { -1.5f, -2.2f, -2.5f },
+        { -3.8f, -2.0f, -12.3f },
+        { 2.4f, -0.4f, -3.5f },
+        { -1.7f,  3.0f, -7.5f },
+        { 1.3f, -2.0f, -2.5f },
+        { 1.5f,  2.0f, -2.5f },
+        { 1.5f,  0.2f, -1.5f },
+        { -1.3f,  1.0f, -1.5f }
+    };
+
+    unsigned int VBOs[2], VAOs[2], EBOs[2];
+    glGenVertexArrays(2, VAOs);
+    glGenBuffers(2, VBOs);
+    glGenBuffers(2, EBOs);
 
     // SETUP TEXTURES
     unsigned int texture = setUpTexture();
@@ -250,8 +277,24 @@ int main(int argc, char* argv[])
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
+    glBindVertexArray(VAOs[0]);
+
+    // PLANE
+    glBindVertexArray(VAOs[1]);
+    glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(plane1verts), plane1verts, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[1]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(planeIndices), planeIndices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+    glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);
+    glBindVertexArray(VAOs[1]);
+
 
     // To draw in triangle as a wireframe:
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -264,31 +307,80 @@ int main(int argc, char* argv[])
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        // initialize view and projection matrices
+        mat4 view = GLM_MAT4_IDENTITY_INIT;
+        mat4 projection = GLM_MAT4_IDENTITY_INIT;
+
+        // do view and projection transforms
+        float viewSinMovement = (float)sin(glfwGetTime());
+        glm_rotate(view, glm_rad(0.0f), (vec3) { 0.0f, 1.0f, 0.0f });
+        glm_translate(view, (vec3) { viewSinMovement, -0.25f, -3.0f });
+        glm_perspective(glm_rad(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f, projection);
+
+        // DRAW PLANE IN PERSPECTIVE
+
+        // setup plane textures, shaders, and EBO
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[1]);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glUseProgram(modelShader);
+
+        // initialize model matrix
+        mat4 model = GLM_MAT4_IDENTITY_INIT;
+
+        // do model matrix transforms
+        // glm_translate();
+        // glm_rotate();
+        // glm_scale();
+
+        // assign model matrix to shader
+        unsigned int modelLoc = glGetUniformLocation(modelShader, "model");
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, (const GLfloat*)model);
+
+        // assign view and projection matrices to shader
+        unsigned int viewLoc = glGetUniformLocation(modelShader, "view");
+        unsigned int projectionLoc = glGetUniformLocation(modelShader, "projection");
+        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, (const GLfloat*)view);
+        glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, (const GLfloat*)projection);
+
+        // draw plane
+        glBindVertexArray(VAOs[1]);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+        /*--------------------------------------------------------------------------------------*/
+
         // DRAW TEXTURED CUBE IN PERSPECTIVE
+
+        // setup cube textures, shaders, and EBO
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[0]);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
-
         glUseProgram(modelShader);
-
-        mat4 model = GLM_MAT4_IDENTITY_INIT;
-        mat4 view = GLM_MAT4_IDENTITY_INIT;
-        mat4 projection = GLM_MAT4_IDENTITY_INIT;
-        glm_rotate(model, glm_rad(0.0f), (vec3) { 1.0f, 0.5f, 0.0f });
-        float viewXTranslate = (float) sin(glfwGetTime());
-        glm_rotate(view, glm_rad(viewXTranslate * 10.0f), (vec3){0.0f, 1.0f, 0.0f});
-        glm_translate(view, (vec3){viewXTranslate, -0.25f, -3.0f});
-        glm_perspective(glm_rad(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f, projection);
-
-        unsigned int modelLoc = glGetUniformLocation(modelShader, "model");
-        unsigned int viewLoc = glGetUniformLocation(modelShader, "view");
-        unsigned int projectionLoc = glGetUniformLocation(modelShader, "projection");
-        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, (const GLfloat*) model);
+        
+        // assign view and projection matrices to shader
+        viewLoc = glGetUniformLocation(modelShader, "view");
+        projectionLoc = glGetUniformLocation(modelShader, "projection");
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, (const GLfloat*) view);
         glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, (const GLfloat*) projection);
-
+        
+        // bind VAO
         glBindVertexArray(VAOs[0]);
-        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+
+        for (int i = 0; i < (sizeof(cubePositions)/sizeof(vec3)); i++) {
+
+            // initialize model matrix
+            mat4 model = GLM_MAT4_IDENTITY_INIT;
+
+            // do model matrix transforms
+            glm_translate(model, cubePositions[i]);
+            glm_rotate(model, glm_rad((float)glfwGetTime() * 10.0f * i), (vec3) { 1.0f, 0.5f, 0.0f });
+
+            // assign model matrix to shader
+            unsigned int modelLoc = glGetUniformLocation(modelShader, "model");
+            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, (const GLfloat*)model);
+
+            // draw cube
+            glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+        }
 
         // SWAP BUFFERS AND CHECK FOR USER INPUTS
         glfwSwapBuffers(window);
