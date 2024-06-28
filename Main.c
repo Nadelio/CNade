@@ -157,8 +157,6 @@ int main(int argc, char* argv[])
     unsigned int textureTransformShader = setUpShader(vertexShaderSource2, fragmentShaderSource4);
     unsigned int modelShader = setUpShader(vertexShaderSource3, fragmentShaderSource4);
 
-    glEnable(GL_DEPTH_TEST);
-
     // SET UP VERTEX DATA AND VBOs/VAOs/EBO
 
     float plane1verts[] = {
@@ -178,7 +176,8 @@ int main(int argc, char* argv[])
     float cube1verts[] = {
       //---position--------/----color--------/texture coordinates
       //X------Y------Z----/R-----G-----B----/X-----Y----/
-      // back face
+      
+        // back face
         0.5f,  0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // 0 // RED // top right
         0.5f, -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // 1 // YELLOW // bottom right
        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, // 2 // GREEN // bottom left
@@ -215,7 +214,7 @@ int main(int argc, char* argv[])
        -0.5f,  0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, // 23
     };
 
-    unsigned int indices[] = {
+    unsigned int cubeIndices[] = {
         //back face
          0,  1,  3, // 1st triangle
          1,  2,  3, // 2nd triangle
@@ -270,15 +269,15 @@ int main(int argc, char* argv[])
     glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(cube1verts), cube1verts, GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[0]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cubeIndices), cubeIndices, GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
-    glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
-    glBindVertexArray(VAOs[0]);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
 
     // PLANE
     glBindVertexArray(VAOs[1]);
@@ -292,30 +291,37 @@ int main(int argc, char* argv[])
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
-    glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);
-    glBindVertexArray(VAOs[1]);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
 
 
-    // To draw in triangle as a wireframe:
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); glLineWidth(2.0f); // Wireframe mode
+    glEnable(GL_DEPTH_TEST);
 
     // RENDER LOOP
     while (!glfwWindowShouldClose(window))
     {
         processInput(window);
 
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        /*--------------------------------------------------------------------------------------*/
+
+        // SETUP CAMERA/FOV
+
         // initialize view and projection matrices
-        mat4 view = GLM_MAT4_IDENTITY_INIT;
-        mat4 projection = GLM_MAT4_IDENTITY_INIT;
+        mat4 view = GLM_MAT4_IDENTITY_INIT; // camera
+        mat4 projection = GLM_MAT4_IDENTITY_INIT; // FOV
 
         // do view and projection transforms
         float viewSinMovement = (float)sin(glfwGetTime());
         glm_rotate(view, glm_rad(0.0f), (vec3) { 0.0f, 1.0f, 0.0f });
         glm_translate(view, (vec3) { viewSinMovement, -0.25f, -3.0f });
-        glm_perspective(glm_rad(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f, projection);
+        glm_perspective(glm_rad(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f, projection); // FOV, aspect ratio, near Z, far Z, projection matrix
+        
+        /*--------------------------------------------------------------------------------------*/
 
         // DRAW PLANE IN PERSPECTIVE
 
@@ -325,22 +331,22 @@ int main(int argc, char* argv[])
         glUseProgram(modelShader);
 
         // initialize model matrix
-        mat4 model = GLM_MAT4_IDENTITY_INIT;
+        mat4 model2 = GLM_MAT4_IDENTITY_INIT;
 
         // do model matrix transforms
-        // glm_translate();
-        // glm_rotate();
-        // glm_scale();
+        glm_translate(model2, (vec3) { 0.0f, 0.0f, 0.0f });
+        glm_rotate(model2, 0.0f, (vec3) { 0.0f, 0.0f, 0.0f });
+        glm_scale(model2, (vec3) { 1.0f, 1.0f, 1.0f });
 
         // assign model matrix to shader
-        unsigned int modelLoc = glGetUniformLocation(modelShader, "model");
-        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, (const GLfloat*)model);
+        unsigned int modelLoc1 = glGetUniformLocation(modelShader, "model");
+        glUniformMatrix4fv(modelLoc1, 1, GL_FALSE, (const GLfloat*)model2);
 
         // assign view and projection matrices to shader
-        unsigned int viewLoc = glGetUniformLocation(modelShader, "view");
-        unsigned int projectionLoc = glGetUniformLocation(modelShader, "projection");
-        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, (const GLfloat*)view);
-        glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, (const GLfloat*)projection);
+        unsigned int viewLoc2 = glGetUniformLocation(modelShader, "view");
+        unsigned int projectionLoc2 = glGetUniformLocation(modelShader, "projection");
+        glUniformMatrix4fv(viewLoc2, 1, GL_FALSE, (const GLfloat*)view);
+        glUniformMatrix4fv(projectionLoc2, 1, GL_FALSE, (const GLfloat*)projection);
 
         // draw plane
         glBindVertexArray(VAOs[1]);
@@ -355,32 +361,35 @@ int main(int argc, char* argv[])
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
         glUseProgram(modelShader);
-        
+
         // assign view and projection matrices to shader
-        viewLoc = glGetUniformLocation(modelShader, "view");
-        projectionLoc = glGetUniformLocation(modelShader, "projection");
-        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, (const GLfloat*) view);
-        glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, (const GLfloat*) projection);
-        
+        unsigned int viewLoc1 = glGetUniformLocation(modelShader, "view");
+        unsigned int projectionLoc1 = glGetUniformLocation(modelShader, "projection");
+        glUniformMatrix4fv(viewLoc1, 1, GL_FALSE, (const GLfloat*)view);
+        glUniformMatrix4fv(projectionLoc1, 1, GL_FALSE, (const GLfloat*)projection);
+
         // bind VAO
         glBindVertexArray(VAOs[0]);
 
-        for (int i = 0; i < (sizeof(cubePositions)/sizeof(vec3)); i++) {
+        // initialize model matrix
+        mat4 model1 = GLM_MAT4_IDENTITY_INIT;
 
-            // initialize model matrix
-            mat4 model = GLM_MAT4_IDENTITY_INIT;
+        // do model matrix transforms
+        glm_translate(model1, cubePositions[0]);
+        glm_rotate(model1, glm_rad((float)glfwGetTime() * 0.0f), (vec3) { 1.0f, 0.5f, 0.0f });
 
-            // do model matrix transforms
-            glm_translate(model, cubePositions[i]);
-            glm_rotate(model, glm_rad((float)glfwGetTime() * 10.0f * i), (vec3) { 1.0f, 0.5f, 0.0f });
+        // assign model matrix to shader
+        unsigned int modelLoc2 = glGetUniformLocation(modelShader, "model");
+        glUniformMatrix4fv(modelLoc2, 1, GL_FALSE, (const GLfloat*)model1);
 
-            // assign model matrix to shader
-            unsigned int modelLoc = glGetUniformLocation(modelShader, "model");
-            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, (const GLfloat*)model);
+        // draw cube
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
-            // draw cube
-            glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-        }
+        /*for (int i = 0; i < (sizeof(cubePositions)/sizeof(vec3)); i++) {
+
+
+        }*/
+
 
         // SWAP BUFFERS AND CHECK FOR USER INPUTS
         glfwSwapBuffers(window);
@@ -388,9 +397,9 @@ int main(int argc, char* argv[])
     }
 
     // DE-ALLOCATE RESOURCES
-    glDeleteVertexArrays(1, VAOs);
-    glDeleteBuffers(1, VBOs);
-    glDeleteBuffers(1, EBOs);
+    glDeleteVertexArrays(2, VAOs);
+    glDeleteBuffers(2, VBOs);
+    glDeleteBuffers(2, EBOs);
     glDeleteProgram(yellowShader);
     glDeleteProgram(orangeShader);
     glDeleteProgram(RGBShader);
