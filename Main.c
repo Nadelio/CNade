@@ -323,9 +323,46 @@ int main(int argc, char* argv[])
         
         /*--------------------------------------------------------------------------------------*/
 
+        // DRAW TEXTURED CUBE IN PERSPECTIVE
+
+        // setup cube textures, shaders, VAO, and EBO
+        glBindVertexArray(VAOs[0]);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[0]);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glUseProgram(modelShader);
+
+        // assign view and projection matrices to shader
+        unsigned int viewLoc1 = glGetUniformLocation(modelShader, "view");
+        unsigned int projectionLoc1 = glGetUniformLocation(modelShader, "projection");
+        glUniformMatrix4fv(viewLoc1, 1, GL_FALSE, (const GLfloat*)view);
+        glUniformMatrix4fv(projectionLoc1, 1, GL_FALSE, (const GLfloat*)projection);
+
+        // initialize model matrix
+        mat4 model1 = GLM_MAT4_IDENTITY_INIT;
+
+        // do model matrix transforms
+        glm_translate(model1, cubePositions[0]);
+        glm_rotate(model1, glm_rad((float)glfwGetTime() * 0.0f), (vec3) { 1.0f, 0.5f, 0.0f });
+
+        // assign model matrix to shader
+        unsigned int modelLoc2 = glGetUniformLocation(modelShader, "model");
+        glUniformMatrix4fv(modelLoc2, 1, GL_FALSE, (const GLfloat*)model1);
+
+        // draw cube
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+
+        /*for (int i = 0; i < (sizeof(cubePositions)/sizeof(vec3)); i++) {
+
+
+        }*/
+
+        /*--------------------------------------------------------------------------------------*/
+
         // DRAW PLANE IN PERSPECTIVE
 
-        // setup plane textures, shaders, and EBO
+        // setup plane textures, shaders, VAO, and EBO
+        glBindVertexArray(VAOs[1]);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[1]);
         glBindTexture(GL_TEXTURE_2D, texture);
         glUseProgram(modelShader);
@@ -349,47 +386,7 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(projectionLoc2, 1, GL_FALSE, (const GLfloat*)projection);
 
         // draw plane
-        glBindVertexArray(VAOs[1]);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-        /*--------------------------------------------------------------------------------------*/
-
-        // DRAW TEXTURED CUBE IN PERSPECTIVE
-
-        // setup cube textures, shaders, and EBO
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[0]);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture);
-        glUseProgram(modelShader);
-
-        // assign view and projection matrices to shader
-        unsigned int viewLoc1 = glGetUniformLocation(modelShader, "view");
-        unsigned int projectionLoc1 = glGetUniformLocation(modelShader, "projection");
-        glUniformMatrix4fv(viewLoc1, 1, GL_FALSE, (const GLfloat*)view);
-        glUniformMatrix4fv(projectionLoc1, 1, GL_FALSE, (const GLfloat*)projection);
-
-        // bind VAO
-        glBindVertexArray(VAOs[0]);
-
-        // initialize model matrix
-        mat4 model1 = GLM_MAT4_IDENTITY_INIT;
-
-        // do model matrix transforms
-        glm_translate(model1, cubePositions[0]);
-        glm_rotate(model1, glm_rad((float)glfwGetTime() * 0.0f), (vec3) { 1.0f, 0.5f, 0.0f });
-
-        // assign model matrix to shader
-        unsigned int modelLoc2 = glGetUniformLocation(modelShader, "model");
-        glUniformMatrix4fv(modelLoc2, 1, GL_FALSE, (const GLfloat*)model1);
-
-        // draw cube
-        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-
-        /*for (int i = 0; i < (sizeof(cubePositions)/sizeof(vec3)); i++) {
-
-
-        }*/
-
 
         // SWAP BUFFERS AND CHECK FOR USER INPUTS
         glfwSwapBuffers(window);
