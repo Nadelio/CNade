@@ -11,6 +11,8 @@ typedef struct WindowData {
 } WindowData;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
 unsigned int setUpShader(const char* vertSource, const char* fragSource);
 WindowData buildWindow();
@@ -19,6 +21,22 @@ unsigned int setUpTexture();
 // settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
+
+// camera
+vec3 cameraPos = { 0.0f, 0.0f, 3.0f };
+vec3 cameraFront = { 0.0f, 0.0f, -1.0f };
+vec3 cameraUp = { 0.0f, 1.0f, 0.0f };
+
+bool firstMouse = true;
+float yaw = -90.0f;	// yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
+float pitch = 0.0f;
+float lastX = 800.0f / 2.0;
+float lastY = 600.0 / 2.0;
+float fov = 45.0f;
+
+// timing
+float deltaTime = 0.0f;	// time between current frame and last frame
+float lastFrame = 0.0f;
 
 //shaders
 const char* vertexShaderSource = "#version 330 core\n" //vert // basic shader
@@ -293,8 +311,6 @@ int main(int argc, char* argv[])
     glEnableVertexAttribArray(2);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
-
-
     
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); glLineWidth(2.0f); // Wireframe mode
     //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); glLineWidth(2.0f); // Fill mode
@@ -303,6 +319,11 @@ int main(int argc, char* argv[])
     // RENDER LOOP
     while (!glfwWindowShouldClose(window))
     {
+        // per-frame time logic
+        float currentFrame = (float)glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
         processInput(window);
 
         glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
@@ -317,10 +338,10 @@ int main(int argc, char* argv[])
         mat4 projection = GLM_MAT4_IDENTITY_INIT; // FOV
 
         // do view and projection transforms
-        float viewSinMovement = (float)sin(glfwGetTime()) * 0.0f;
-        glm_rotate(view, glm_rad(0.0f), (vec3) { 0.0f, 1.0f, 0.0f });
-        glm_translate(view, (vec3) { viewSinMovement, -0.25f, -3.0f });
-        glm_perspective(glm_rad(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f, projection); // FOV, aspect ratio, near Z, far Z, projection matrix
+        vec3 cameraDirection;
+        glm_vec3_add(cameraPos, cameraFront, cameraDirection);
+        glm_lookat(cameraPos, cameraDirection, cameraUp, view);
+        glm_perspective(glm_rad(fov), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f, projection); // FOV, aspect ratio, near Z, far Z, projection matrix
 
         /*--------------------------------------------------------------------------------------*/
 
@@ -415,9 +436,86 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     glViewport(0, 0, width, height);
 }
 
+void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
+{
+    float xpos = (float)xposIn;
+    float ypos = (float)yposIn;
+
+    if (firstMouse)
+    {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+    lastX = xpos;
+    lastY = ypos;
+
+    float sensitivity = 0.1f; // change this value to your liking
+    xoffset *= sensitivity;
+    yoffset *= sensitivity;
+
+    yaw += xoffset;
+    pitch += yoffset;
+
+    // make sure that when pitch is out of bounds, screen doesn't get flipped
+    if (pitch > 89.0f)
+        pitch = 89.0f;
+    if (pitch < -89.0f)
+        pitch = -89.0f;
+
+    vec3 front;
+    front[0] = (float)cos(glm_rad(yaw)) * (float)cos(glm_rad(pitch));
+    front[1] = (float)sin(glm_rad(pitch));
+    front[2] = (float)sin(glm_rad(yaw)) * (float)cos(glm_rad(pitch));
+    glm_normalize(front);
+    cameraFront[0] = front[0];
+    cameraFront[1] = front[1];
+    cameraFront[2] = front[2];
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    fov -= (float)yoffset;
+    if (fov < 1.0f)
+        fov = 1.0f;
+    if (fov > 45.0f)
+        fov = 45.0f;
+}
+
 void processInput(GLFWwindow* window) {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-        glfwSetWindowShouldClose(window, 1);
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
+
+
+    //! BROKEN CAMERA MOVEMENT !//
+    float cameraSpeed = 0.05f * deltaTime;
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+        vec3 tempCameraPos;
+        glm_vec3_mul(cameraFront, &cameraSpeed, tempCameraPos);
+        glm_vec3_add(cameraPos, tempCameraPos, cameraPos);
+    }
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+        vec3 tempCameraPos;
+        glm_vec3_mul(cameraFront, &cameraSpeed, tempCameraPos);
+        glm_vec3_sub(cameraPos, tempCameraPos, cameraPos);
+    }
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+        vec3 tempCameraPos = { cameraPos[0], cameraPos[1], cameraPos[2] };
+        glm_vec3_cross(cameraFront, cameraUp, tempCameraPos);
+        glm_normalize(tempCameraPos);
+        glm_vec3_mul(tempCameraPos, &cameraSpeed, tempCameraPos);
+        glm_vec3_sub(cameraPos, tempCameraPos, cameraPos);
+    }
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+        vec3 tempCameraPos = { cameraPos[0], cameraPos[1], cameraPos[2] };
+        glm_vec3_cross(cameraFront, cameraUp, tempCameraPos);
+        glm_normalize(tempCameraPos);
+        glm_vec3_mul(tempCameraPos, &cameraSpeed, tempCameraPos);
+        glm_vec3_add(cameraPos, tempCameraPos, cameraPos);
     }
 }
 
@@ -490,6 +588,11 @@ WindowData buildWindow() {
 
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetScrollCallback(window, scroll_callback);
+
+    // tell GLFW to capture our mouse
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     return windowData;
 }
