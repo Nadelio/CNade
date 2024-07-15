@@ -162,13 +162,13 @@ int main(int argc, char* argv[])
     float plane1verts[] = {
         //---position--------/----color--------/texture coordinates
         //X------Y------Z----/R-----G-----B----/X-----Y----/
-       -0.75f, -1.0f, -0.75f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, // 16
-        0.75f, -1.0f, -0.75f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, // 17
-        0.75f, -1.0f,  0.75f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, // 18
-       -0.75f, -1.0f,  0.75f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // 19
+        -1.25f, -1.0f, -1.25f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, // 0
+         1.25f, -1.0f, -1.25f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, // 1
+         1.25f, -1.0f,  1.25f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, // 2
+        -1.25f, -1.0f,  1.25f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // 3
     };
 
-    float planeIndices[] = {
+    unsigned int planeIndices[] = {
 		0, 1, 3, // 1st triangle
 		1, 2, 3, // 2nd triangle
 	};
@@ -297,6 +297,7 @@ int main(int argc, char* argv[])
 
     
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); glLineWidth(2.0f); // Wireframe mode
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); glLineWidth(2.0f); // Fill mode
     glEnable(GL_DEPTH_TEST);
 
     // RENDER LOOP
@@ -316,11 +317,11 @@ int main(int argc, char* argv[])
         mat4 projection = GLM_MAT4_IDENTITY_INIT; // FOV
 
         // do view and projection transforms
-        float viewSinMovement = (float)sin(glfwGetTime());
+        float viewSinMovement = (float)sin(glfwGetTime()) * 0.0f;
         glm_rotate(view, glm_rad(0.0f), (vec3) { 0.0f, 1.0f, 0.0f });
         glm_translate(view, (vec3) { viewSinMovement, -0.25f, -3.0f });
         glm_perspective(glm_rad(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f, projection); // FOV, aspect ratio, near Z, far Z, projection matrix
-        
+
         /*--------------------------------------------------------------------------------------*/
 
         // DRAW TEXTURED CUBE IN PERSPECTIVE
@@ -343,11 +344,11 @@ int main(int argc, char* argv[])
 
         // do model matrix transforms
         glm_translate(model1, cubePositions[0]);
-        glm_rotate(model1, glm_rad((float)glfwGetTime() * 0.0f), (vec3) { 1.0f, 0.5f, 0.0f });
+        glm_rotate(model1, glm_rad((float)glfwGetTime() * -10.0f), (vec3) { 1.0f, 0.5f, 0.0f });
 
         // assign model matrix to shader
-        unsigned int modelLoc2 = glGetUniformLocation(modelShader, "model");
-        glUniformMatrix4fv(modelLoc2, 1, GL_FALSE, (const GLfloat*)model1);
+        unsigned int modelLoc1 = glGetUniformLocation(modelShader, "model");
+        glUniformMatrix4fv(modelLoc1, 1, GL_FALSE, (const GLfloat*)model1);
 
         // draw cube
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
@@ -364,6 +365,7 @@ int main(int argc, char* argv[])
         // setup plane textures, shaders, VAO, and EBO
         glBindVertexArray(VAOs[1]);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[1]);
+        glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
         glUseProgram(modelShader);
 
@@ -372,12 +374,12 @@ int main(int argc, char* argv[])
 
         // do model matrix transforms
         glm_translate(model2, (vec3) { 0.0f, 0.0f, 0.0f });
-        glm_rotate(model2, 0.0f, (vec3) { 0.0f, 0.0f, 0.0f });
+        glm_rotate(model2, glm_rad((float)glfwGetTime() * 10.0f), (vec3) { 0.0f, 1.0f, 0.0f });
         glm_scale(model2, (vec3) { 1.0f, 1.0f, 1.0f });
 
         // assign model matrix to shader
-        unsigned int modelLoc1 = glGetUniformLocation(modelShader, "model");
-        glUniformMatrix4fv(modelLoc1, 1, GL_FALSE, (const GLfloat*)model2);
+        unsigned int modelLoc2 = glGetUniformLocation(modelShader, "model");
+        glUniformMatrix4fv(modelLoc2, 1, GL_FALSE, (const GLfloat*)model2);
 
         // assign view and projection matrices to shader
         unsigned int viewLoc2 = glGetUniformLocation(modelShader, "view");
