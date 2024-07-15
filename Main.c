@@ -339,24 +339,21 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(viewLoc1, 1, GL_FALSE, (const GLfloat*)view);
         glUniformMatrix4fv(projectionLoc1, 1, GL_FALSE, (const GLfloat*)projection);
 
-        // initialize model matrix
-        mat4 model1 = GLM_MAT4_IDENTITY_INIT;
+        for (int i = 0; i < (sizeof(cubePositions)/sizeof(vec3)); i++) {
+            // initialize model matrix
+            mat4 model1 = GLM_MAT4_IDENTITY_INIT;
 
-        // do model matrix transforms
-        glm_translate(model1, cubePositions[0]);
-        glm_rotate(model1, glm_rad((float)glfwGetTime() * -10.0f), (vec3) { 1.0f, 0.5f, 0.0f });
+            // do model matrix transforms
+            glm_translate(model1, cubePositions[i]);
+            glm_rotate(model1, glm_rad((float)glfwGetTime() * -10.0f * i), (vec3) { 1.0f, 0.5f, 0.0f });
 
-        // assign model matrix to shader
-        unsigned int modelLoc1 = glGetUniformLocation(modelShader, "model");
-        glUniformMatrix4fv(modelLoc1, 1, GL_FALSE, (const GLfloat*)model1);
+            // assign model matrix to shader
+            unsigned int modelLoc1 = glGetUniformLocation(modelShader, "model");
+            glUniformMatrix4fv(modelLoc1, 1, GL_FALSE, (const GLfloat*)model1);
 
-        // draw cube
-        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-
-        /*for (int i = 0; i < (sizeof(cubePositions)/sizeof(vec3)); i++) {
-
-
-        }*/
+            // draw cube
+            glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+        }
 
         /*--------------------------------------------------------------------------------------*/
 
