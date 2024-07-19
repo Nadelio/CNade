@@ -148,8 +148,8 @@ const char* fragmentShaderSource7 = "#version 330 core\n" //frag // texture shad
 									"    FragColor = texture(texture1, TexCoord) * vec4(1.0);\n"
 									"}\n";
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]){
+
     // SETUP WINDOW
     WindowData windowBuildResult = buildWindow();
 
@@ -487,35 +487,37 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 
 void processInput(GLFWwindow* window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    {
         glfwSetWindowShouldClose(window, true);
+    }
 
-
-    //! BROKEN CAMERA MOVEMENT !//
-    float cameraSpeed = 0.05f * deltaTime;
+    float cameraSpeed = 2.5f;// *deltaTime;
+    vec3 tempVec; // Temporary vector for intermediate calculations
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-        vec3 tempCameraPos;
-        glm_vec3_mul(cameraFront, &cameraSpeed, tempCameraPos);
-        glm_vec3_add(cameraPos, tempCameraPos, cameraPos);
+        glm_vec3_scale(cameraFront, cameraSpeed, tempVec); // Scale cameraFront by cameraSpeed
+        glm_vec3_add(cameraPos, tempVec, cameraPos); // Add to cameraPos
     }
+
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-        vec3 tempCameraPos;
-        glm_vec3_mul(cameraFront, &cameraSpeed, tempCameraPos);
-        glm_vec3_sub(cameraPos, tempCameraPos, cameraPos);
+        glm_vec3_scale(cameraFront, cameraSpeed, tempVec); // Scale cameraFront by cameraSpeed
+        glm_vec3_sub(cameraPos, tempVec, cameraPos); // Subtract from cameraPos
     }
+
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-        vec3 tempCameraPos = { cameraPos[0], cameraPos[1], cameraPos[2] };
-        glm_vec3_cross(cameraFront, cameraUp, tempCameraPos);
-        glm_normalize(tempCameraPos);
-        glm_vec3_mul(tempCameraPos, &cameraSpeed, tempCameraPos);
-        glm_vec3_sub(cameraPos, tempCameraPos, cameraPos);
+        vec3 crossProduct;
+        glm_vec3_cross(cameraFront, cameraUp, crossProduct); // Cross product of cameraFront and cameraUp
+        glm_normalize(crossProduct); // Normalize the result
+        glm_vec3_scale(crossProduct, cameraSpeed, tempVec); // Scale by cameraSpeed
+        glm_vec3_sub(cameraPos, tempVec, cameraPos); // Subtract from cameraPos
     }
+
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-        vec3 tempCameraPos = { cameraPos[0], cameraPos[1], cameraPos[2] };
-        glm_vec3_cross(cameraFront, cameraUp, tempCameraPos);
-        glm_normalize(tempCameraPos);
-        glm_vec3_mul(tempCameraPos, &cameraSpeed, tempCameraPos);
-        glm_vec3_add(cameraPos, tempCameraPos, cameraPos);
+        vec3 crossProduct;
+        glm_vec3_cross(cameraFront, cameraUp, crossProduct); // Cross product of cameraFront and cameraUp
+        glm_normalize(crossProduct); // Normalize the result
+        glm_vec3_scale(crossProduct, cameraSpeed, tempVec); // Scale by cameraSpeed
+        glm_vec3_add(cameraPos, tempVec, cameraPos); // Add to cameraPos
     }
 }
 
